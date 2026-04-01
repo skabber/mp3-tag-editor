@@ -1,0 +1,6 @@
+[application]
+name = "mp3-tag-editor"
+default_platform = "web"
+
+[web.app]
+title = "MP3 Tag Editor"

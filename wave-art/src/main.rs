@@ -1,8 +1,26 @@
 use dioxus::prelude::*;
 use std::fmt::Write as _;
 use std::time::Duration;
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
+
+fn viewport_size() -> (f64, f64) {
+    web_sys::window()
+        .map(|w| {
+            let width  = w.inner_width().ok().and_then(|v| v.as_f64()).unwrap_or(1280.0);
+            let height = w.inner_height().ok().and_then(|v| v.as_f64()).unwrap_or(720.0);
+            (width, height)
+        })
+        .unwrap_or((1280.0, 720.0))
+}
+
+fn dims_from_viewport(cell_w: f64, cell_h: f64) -> (usize, usize) {
+    let (w, h) = viewport_size();
+    let cols = ((w / cell_w) as usize).max(1);
+    let rows = ((h / cell_h) as usize).max(1);
+    (cols, rows)
+}
 
 // ASCII density gradient from sparse to dense
 const CHARS: &[char] = &[
@@ -157,27 +175,37 @@ fn draw_frame(
 }
 
 fn App() -> Element {
-    let cols: usize = 110;
-    let rows: usize = 50;
     let cell_w: f64 = 10.0;
     let cell_h: f64 = 16.0;
-    let canvas_w = cols as f64 * cell_w;
-    let canvas_h = rows as f64 * cell_h;
 
+    let mut dims:         Signal<(usize, usize)>    = use_signal(|| dims_from_viewport(cell_w, cell_h));
     let mut time:         Signal<f64>               = use_signal(|| 0.0);
-    let mut mouse_grid:   Signal<(f64, f64)>        = use_signal(|| (55.0, 25.0));
+    let mut mouse_grid:   Signal<(f64, f64)>        = use_signal(|| {
+        let (c, r) = dims_from_viewport(cell_w, cell_h);
+        (c as f64 * 0.5, r as f64 * 0.5)
+    });
     let mut click_pulses: Signal<Vec<(f64, f64, f64)>> = use_signal(Vec::new);
+
+    // Wire up window resize → dims signal. Closure leaks intentionally; it lives
+    // for the page's lifetime and the signal handle behind it is 'static.
+    use_hook(|| {
+        let Some(window) = web_sys::window() else { return };
+        let closure = Closure::<dyn FnMut()>::new(move || {
+            dims.set(dims_from_viewport(cell_w, cell_h));
+        });
+        window.set_onresize(Some(closure.as_ref().unchecked_ref()));
+        closure.forget();
+    });
 
     use_future(move || async move {
         let mut frame: u64 = 0;
         let mut color_buf = String::with_capacity(24);
         let mut ch_buf = [0u8; 4];
         let mut last_color = (u16::MAX, u8::MAX, u8::MAX);
+        let mut last_dims = (0usize, 0usize);
         let mut ctx: Option<CanvasRenderingContext2d> = None;
 
         loop {
-            // ~60fps; dioxus-web doesn't ship a rAF future, so this is
-            // the cheapest high-frequency tick without extra deps.
             gloo_timers::future::sleep(Duration::from_millis(16)).await;
 
             let t = *time.peek() + 0.016;
@@ -188,13 +216,19 @@ fn App() -> Element {
 
             if ctx.is_none() {
                 ctx = get_canvas_ctx();
-                if let Some(ref c) = ctx {
-                    c.set_font("13px 'Courier New', Courier, monospace");
-                    c.set_text_baseline("alphabetic");
-                }
             }
             let Some(ref c) = ctx else { continue; };
 
+            // Assigning canvas.width/height (which dioxus does when dims change)
+            // clears the 2D context state, so re-apply font/baseline after a resize.
+            let current_dims = *dims.peek();
+            if current_dims != last_dims {
+                last_dims = current_dims;
+                c.set_font("13px 'Courier New', Courier, monospace");
+                c.set_text_baseline("alphabetic");
+            }
+
+            let (cols, rows) = current_dims;
             let mg = *mouse_grid.peek();
             let pulses_snap: Vec<(f64, f64, f64)> = click_pulses.peek().clone();
 
@@ -214,6 +248,10 @@ fn App() -> Element {
             );
         }
     });
+
+    let (cols, rows) = dims();
+    let canvas_w = cols as f64 * cell_w;
+    let canvas_h = rows as f64 * cell_h;
 
     rsx! {
         div {

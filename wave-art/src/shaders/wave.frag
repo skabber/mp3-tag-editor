@@ -100,10 +100,11 @@ void main() {
                      / vec2(float(u_atlasCols), float(atlasRows));
     float glyphA     = texture(u_atlas, atlasUV).a;
 
-    float baseHue = mod(u_time * 22.0, 360.0);
-    float posHue  = mod(cell.x * 2.3 + cell.y * 1.7, 360.0);
-    float waveHue = wave * 140.0;
-    float hue     = mod(baseHue + posHue * 0.18 + waveHue + 360.0, 360.0);
+    // No inner mod on the position term — wrapping it to 0..360 before scaling
+    // by 0.18 creates a ~65° hue jump along cell.x*2.3 + cell.y*1.7 = 360k,
+    // which reads as a diagonal seam.
+    float hue = mod(u_time * 22.0 + (cell.x * 2.3 + cell.y * 1.7) * 0.18
+                    + wave * 140.0, 360.0);
     float sat     = 0.65 + wave * 0.35;
     float lit     = 0.12 + wave * 0.58;
     vec3  rgb     = hsl_to_rgb(hue, sat, lit);

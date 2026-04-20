@@ -5,8 +5,11 @@ uniform float u_time;
 uniform vec2  u_resolution;
 uniform vec2  u_cellSize;
 uniform vec2  u_mouse;
-uniform vec3  u_pulses[10];
+uniform float u_mouseStrength;
+uniform vec4  u_pulses[10];   // (x, y, birthTime, sign)
 uniform int   u_pulseCount;
+uniform vec3  u_trail[16];    // (x, y, birthTime)
+uniform int   u_trailCount;
 uniform sampler2D u_atlas;
 uniform int   u_atlasCols;
 uniform int   u_charCount;
@@ -41,7 +44,7 @@ float click_wave(vec2 cell, float t, int count) {
     float total = 0.0;
     for (int i = 0; i < 10; i++) {
         if (i >= count) break;
-        vec3 p = u_pulses[i];
+        vec4 p = u_pulses[i];
         float age = t - p.z;
         if (age < 0.0 || age > 4.0) continue;
         float d      = distance(cell, p.xy);
@@ -49,9 +52,24 @@ float click_wave(vec2 cell, float t, int count) {
         float diff   = d - radius;
         float ring   = exp(-(diff * diff / 4.0));
         float fade   = exp(-age * 0.7);
-        total += ring * fade;
+        total += ring * fade * p.w;
     }
-    return clamp(total, 0.0, 1.0);
+    return clamp(total, -1.0, 1.0);
+}
+
+float trail_wave(vec2 cell, float t, int count) {
+    float total = 0.0;
+    for (int i = 0; i < 16; i++) {
+        if (i >= count) break;
+        vec3 p = u_trail[i];
+        float age = t - p.z;
+        if (age < 0.0 || age > 0.8) continue;
+        float d     = distance(cell, p.xy);
+        float decay = exp(-d * 0.28);
+        float fade  = 1.0 - age / 0.8;
+        total += decay * fade;
+    }
+    return total * 0.18;
 }
 
 // Replaces the Rust lcg_rand — produces uniform-ish noise per (cell, frame).
@@ -84,9 +102,10 @@ void main() {
     vec2 local = fract(cellF);
 
     float bw   = base_wave(cell, u_time);
-    float mw   = mouse_wave(cell, u_time, u_mouse);
+    float mw   = mouse_wave(cell, u_time, u_mouse) * u_mouseStrength;
+    float tw   = trail_wave(cell, u_time, u_trailCount);
     float cw   = click_wave(cell, u_time, u_pulseCount);
-    float wave = clamp(bw + mw + cw * 0.5, 0.0, 1.0);
+    float wave = clamp(bw + mw + tw + cw * 0.5, 0.0, 1.0);
 
     float frame   = floor(u_time * 60.0);
     float noise   = hash13(vec3(cell, frame));
@@ -105,9 +124,9 @@ void main() {
     // which reads as a diagonal seam.
     float hue = mod(u_time * 22.0 + (cell.x * 2.3 + cell.y * 1.7) * 0.18
                     + wave * 140.0, 360.0);
-    float sat     = 0.65 + wave * 0.35;
-    float lit     = 0.12 + wave * 0.58;
-    vec3  rgb     = hsl_to_rgb(hue, sat, lit);
+    float sat = 0.65 + wave * 0.35;
+    float lit = 0.12 + wave * 0.58;
+    vec3  rgb = hsl_to_rgb(hue, sat, lit);
 
     fragColor = vec4(rgb * glyphA, 1.0);
 }

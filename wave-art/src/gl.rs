@@ -52,8 +52,11 @@ pub struct Renderer {
     u_resolution: WebGlUniformLocation,
     u_cell_size: WebGlUniformLocation,
     u_mouse: WebGlUniformLocation,
+    u_mouse_strength: WebGlUniformLocation,
     u_pulses: WebGlUniformLocation,
     u_pulse_count: WebGlUniformLocation,
+    u_trail: WebGlUniformLocation,
+    u_trail_count: WebGlUniformLocation,
     u_atlas_cols: WebGlUniformLocation,
     u_char_count: WebGlUniformLocation,
 }
@@ -116,8 +119,11 @@ impl Renderer {
             u_resolution: u("u_resolution"),
             u_cell_size: u("u_cellSize"),
             u_mouse: u("u_mouse"),
+            u_mouse_strength: u("u_mouseStrength"),
             u_pulses: u("u_pulses"),
             u_pulse_count: u("u_pulseCount"),
+            u_trail: u("u_trail"),
+            u_trail_count: u("u_trailCount"),
             u_atlas_cols: u("u_atlasCols"),
             u_char_count: u("u_charCount"),
             program,
@@ -139,7 +145,9 @@ impl Renderer {
         cell_w: f32,
         cell_h: f32,
         mouse: (f32, f32),
-        pulses: &[(f32, f32, f32)],
+        mouse_strength: f32,
+        pulses: &[(f32, f32, f32, f32)],
+        trail: &[(f32, f32, f32)],
     ) {
         let gl = &self.gl;
         gl.use_program(Some(&self.program));
@@ -149,16 +157,29 @@ impl Renderer {
         gl.uniform2f(Some(&self.u_resolution), canvas_w, canvas_h);
         gl.uniform2f(Some(&self.u_cell_size), cell_w, cell_h);
         gl.uniform2f(Some(&self.u_mouse), mouse.0, mouse.1);
+        gl.uniform1f(Some(&self.u_mouse_strength), mouse_strength);
 
-        let mut flat = [0.0f32; 30];
-        let count = pulses.len().min(10);
+        let mut pulse_flat = [0.0f32; 40];
+        let pcount = pulses.len().min(10);
         for (i, p) in pulses.iter().take(10).enumerate() {
-            flat[i * 3]     = p.0;
-            flat[i * 3 + 1] = p.1;
-            flat[i * 3 + 2] = p.2;
+            pulse_flat[i * 4]     = p.0;
+            pulse_flat[i * 4 + 1] = p.1;
+            pulse_flat[i * 4 + 2] = p.2;
+            pulse_flat[i * 4 + 3] = p.3;
         }
-        gl.uniform3fv_with_f32_array(Some(&self.u_pulses), &flat);
-        gl.uniform1i(Some(&self.u_pulse_count), count as i32);
+        gl.uniform4fv_with_f32_array(Some(&self.u_pulses), &pulse_flat);
+        gl.uniform1i(Some(&self.u_pulse_count), pcount as i32);
+
+        let mut trail_flat = [0.0f32; 48];
+        let tcount = trail.len().min(16);
+        for (i, p) in trail.iter().take(16).enumerate() {
+            trail_flat[i * 3]     = p.0;
+            trail_flat[i * 3 + 1] = p.1;
+            trail_flat[i * 3 + 2] = p.2;
+        }
+        gl.uniform3fv_with_f32_array(Some(&self.u_trail), &trail_flat);
+        gl.uniform1i(Some(&self.u_trail_count), tcount as i32);
+
         gl.uniform1i(Some(&self.u_atlas_cols), ATLAS_COLS);
         gl.uniform1i(Some(&self.u_char_count), CHARS.len() as i32);
 

@@ -125,7 +125,7 @@ fn app() -> Element {
 
     // Load default ATP podcast URL on mount
     {
-        let mut url_input = url_input.clone();
+        let mut url_input = url_input;
         spawn(async move {
             let atp_feed_url = "https://cdn.atp.fm/rss/public?n2p3u3vm";
             match reqwest::get(atp_feed_url).await {

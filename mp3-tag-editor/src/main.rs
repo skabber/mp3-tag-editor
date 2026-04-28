@@ -80,11 +80,11 @@ fn main() {
 
 fn app() -> Element {
     let mut mp3_file = use_signal(|| None::<Mp3File>);
-    let mut chapters = use_signal(|| Vec::<ChapterInfo>::new());
-    let mut chapter_art = use_signal(|| Vec::<ChapterArt>::new());
-    let mut editing_tag = use_signal(|| NewTag::default());
+    let mut chapters = use_signal(Vec::<ChapterInfo>::new);
+    let mut chapter_art = use_signal(Vec::<ChapterArt>::new);
+    let mut editing_tag = use_signal(NewTag::default);
     let mut editing_chapter = use_signal(|| None::<NewChapter>);
-    let mut url_input = use_signal(|| String::new());
+    let mut url_input = use_signal(String::new);
     let mut error_message = use_signal(|| None::<String>);
     let mut is_loading = use_signal(|| false);
     let mut is_dark_mode = use_signal(|| false);
@@ -104,7 +104,7 @@ fn app() -> Element {
         let is_dark = is_dark_mode();
         let _ = document::eval(&format!(
             "localStorage.setItem('mp3-editor-dark-mode', '{}'); document.documentElement.setAttribute('data-theme', '{}');",
-            is_dark.to_string(),
+            is_dark,
             if is_dark { "dark" } else { "light" }
         ));
     };
@@ -112,14 +112,14 @@ fn app() -> Element {
     // Initialize dark mode on mount
     {
         spawn(async move {
-            let _ = document::eval(&format!(
+            let _ = document::eval(
                 "
                 const saved = localStorage.getItem('mp3-editor-dark-mode');
-                if (saved === 'true') {{
+                if (saved === 'true') {
                     document.documentElement.setAttribute('data-theme', 'dark');
-                }}
+                }
                 "
-            ));
+            );
         });
     }
 
@@ -437,11 +437,11 @@ fn app() -> Element {
                 .name()
                 .rsplit_once('.')
                 .map(|(_, ext)| ext.to_lowercase())
-                .and_then(|ext| match ext.as_str() {
-                    "png" => Some("image/png"),
-                    "gif" => Some("image/gif"),
-                    "webp" => Some("image/webp"),
-                    _ => Some("image/jpeg"),
+                .map(|ext| match ext.as_str() {
+                    "png" => "image/png",
+                    "gif" => "image/gif",
+                    "webp" => "image/webp",
+                    _ => "image/jpeg",
                 })
                 .unwrap_or("image/jpeg");
 
@@ -839,9 +839,8 @@ fn parse_mp3_data(data: &[u8]) -> Result<(TagInfo, Vec<ChapterInfo>, Vec<Chapter
 
     for frame in tag.frames() {
         if let Content::Text(text) = frame.content() {
-            match frame.id() {
-                "TCOM" => tag_info.composer = text.clone(),
-                _ => {}
+            if frame.id() == "TCOM" {
+                tag_info.composer = text.clone();
             }
         }
         if let Some(comment) = frame.content().comment() {

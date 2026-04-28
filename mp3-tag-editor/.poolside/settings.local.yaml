@@ -39,6 +39,12 @@ tools:
             - sleep 120
             - gh run view 25073889798 *
             - curl *
+            - cargo check *
+            - git show *
+            - wc *
+            - git ls-tree *
+            - git cat-file blob *
+            - diff *
 paths:
     allow:
         - path: /home/jay/Projects/scratch/mp3-tag-editor/src/**

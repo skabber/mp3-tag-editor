@@ -125,7 +125,7 @@ fn app() -> Element {
 
     // Load default ATP podcast URL on mount
     {
-        let url_input = url_input.clone();
+        let mut url_input = url_input.clone();
         spawn(async move {
             let atp_feed_url = "https://cdn.atp.fm/rss/public?n2p3u3vm";
             match reqwest::get(atp_feed_url).await {
@@ -143,9 +143,7 @@ fn app() -> Element {
                         }
                     }
                 }
-                Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to load ATP feed: {}", e).into());
-                }
+                Err(_e) => {}
             }
         });
     }
@@ -510,7 +508,7 @@ fn app() -> Element {
                 position: relative;
                 overflow: hidden;
             ",
-            
+
             // Animated background elements
             div {
                 style: "
@@ -526,7 +524,7 @@ fn app() -> Element {
                 div { style: "position: absolute; width: 150px; height: 150px; background: radial-gradient(circle, var(--accent-cyan), transparent); border-radius: 50%; bottom: 20%; right: 15%; filter: blur(60px); animation: pulse 6s infinite 2s;" }
                 div { style: "position: absolute; width: 180px; height: 180px; background: radial-gradient(circle, var(--accent-purple), transparent); border-radius: 50%; top: 60%; left: 70%; filter: blur(70px); animation: pulse 10s infinite 1s;" }
             }
-            
+
             div {
                 style: "
                     max-width: 900px;
@@ -534,7 +532,7 @@ fn app() -> Element {
                     position: relative;
                     z-index: 1;
                 ",
-                
+
                 // Header
                 div {
                     style: "
@@ -549,7 +547,7 @@ fn app() -> Element {
                         border: 1px solid rgba(255, 255, 255, 0.1);
                         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
                     ",
-                    
+
                     h1 {
                         style: "
                             margin: 0;
@@ -563,7 +561,7 @@ fn app() -> Element {
                         ",
                         "MP3 Tag Editor"
                     }
-                    
+
                     button {
                         onclick: toggle_dark_mode,
                         style: "
@@ -581,7 +579,7 @@ fn app() -> Element {
                         if is_dark_mode() { "🌙 Dark" } else { "☀️ Light" }
                     }
                 }
-                
+
                 // Load Section
                 div {
                     style: "
@@ -594,7 +592,7 @@ fn app() -> Element {
                         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
                         animation: slideIn 0.5s ease-out;
                     ",
-                    
+
                     h2 {
                         style: "
                             margin: 0 0 20px 0;
@@ -604,7 +602,7 @@ fn app() -> Element {
                         ",
                         "Load MP3 File"
                     }
-                    
+
                     div {
                         style: "
                             display: flex;
@@ -612,7 +610,7 @@ fn app() -> Element {
                             margin-bottom: 20px;
                             flex-wrap: wrap;
                         ",
-                        
+
                         label {
                             style: "
                                 flex: 1;
@@ -629,7 +627,7 @@ fn app() -> Element {
                             r#for: "file-input",
                             "📁 Choose File"
                         }
-                        
+
                         input {
                             id: "file-input",
                             r#type: "file",
@@ -637,7 +635,7 @@ fn app() -> Element {
                             onchange: load_from_file,
                             style: "display: none;",
                         }
-                        
+
                         div {
                             style: "
                                 flex: 2;
@@ -645,7 +643,7 @@ fn app() -> Element {
                                 display: flex;
                                 gap: 10px;
                             ",
-                            
+
                             input {
                                 r#type: "text",
                                 placeholder: "Enter MP3 URL...",
@@ -663,10 +661,10 @@ fn app() -> Element {
                                     transition: border-color 0.3s;
                                 ",
                             }
-                            
+
                             button {
                                 onclick: load_from_url,
-                                disabled: "{is_loading}",
+                                disabled: is_loading,
                                 style: "
                                     padding: 15px 25px;
                                     background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
@@ -686,10 +684,10 @@ fn app() -> Element {
                             }
                         }
                     }
-                    
+
                     button {
                         onclick: load_from_url,
-                        disabled: "{is_loading || url_input().is_empty()}",
+                        disabled: is_loading() || url_input().is_empty(),
                         style: "
                             width: 100%;
                             padding: 15px;
@@ -705,7 +703,7 @@ fn app() -> Element {
                         ",
                         "🎵 Load Latest ATP Episode"
                     }
-                    
+
                     if let Some(err) = error_message() {
                         div {
                             style: "
@@ -748,7 +746,7 @@ fn app() -> Element {
                         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
                         animation: slideIn 0.5s ease-out 0.1s both;
                     ",
-                    
+
                     h2 {
                         style: "
                             margin: 0 0 20px 0;
@@ -758,7 +756,7 @@ fn app() -> Element {
                         ",
                         "🎧 Preview"
                     }
-                    
+
                     audio {
                         controls: true,
                         style: "width: 100%; border-radius: 12px;",
@@ -786,7 +784,7 @@ fn app() -> Element {
                             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
                             animation: slideIn 0.5s ease-out 0.2s both;
                         ",
-                        
+
                         h2 {
                             style: "
                                 margin: 0 0 25px 0;
@@ -798,7 +796,7 @@ fn app() -> Element {
                             ",
                             "Basic Tags"
                         }
-                        
+
                         div { style: "margin-bottom: 20px;",
                             label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Title:" }
                             input {
@@ -808,7 +806,7 @@ fn app() -> Element {
                                 style: "width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: var(--text-primary); font-size: 15px; outline: none;",
                             }
                         }
-                        
+
                         div { style: "margin-bottom: 20px;",
                             label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Artist:" }
                             input {
@@ -818,7 +816,7 @@ fn app() -> Element {
                                 style: "width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: var(--text-primary); font-size: 15px; outline: none;",
                             }
                         }
-                        
+
                         div { style: "margin-bottom: 20px;",
                             label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Album:" }
                             input {
@@ -828,7 +826,7 @@ fn app() -> Element {
                                 style: "width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: var(--text-primary); font-size: 15px; outline: none;",
                             }
                         }
-                        
+
                         div { style: "display: flex; gap: 15px; margin-bottom: 20px;",
                             div { style: "flex: 1;",
                                 label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Year:" }
@@ -849,7 +847,7 @@ fn app() -> Element {
                                 }
                             }
                         }
-                        
+
                         div { style: "display: flex; gap: 15px; margin-bottom: 20px;",
                             div { style: "flex: 1;",
                                 label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Track:" }
@@ -870,7 +868,7 @@ fn app() -> Element {
                                 }
                             }
                         }
-                        
+
                         div { style: "margin-bottom: 20px;",
                             label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Composer:" }
                             input {
@@ -880,7 +878,7 @@ fn app() -> Element {
                                 style: "width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: var(--text-primary); font-size: 15px; outline: none;",
                             }
                         }
-                        
+
                         div { style: "margin-bottom: 12px;",
                             label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Comment:" }
                             textarea {
@@ -890,7 +888,7 @@ fn app() -> Element {
                             }
                         }
                     }
-                    
+
                     div {
                         style: "
                             background: rgba(255, 255, 255, 0.05);
@@ -906,12 +904,12 @@ fn app() -> Element {
                             style: "margin: 0 0 25px 0; font-size: 20px; color: var(--text-secondary); font-weight: 600; position: relative; padding-bottom: 10px;",
                             "Chapter Markers"
                         }
-                        
+
                         div {
                             style: "margin-bottom: 25px; padding: 20px; background: rgba(255, 255, 255, 0.05); border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.1);",
-                            
+
                             h3 { style: "margin: 0 0 15px 0; color: var(--text-secondary); font-size: 16px;", "Add New Chapter" }
-                            
+
                             div { style: "margin-bottom: 15px;",
                                 label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Element ID:" }
                                 input {
@@ -925,7 +923,7 @@ fn app() -> Element {
                                     style: "width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: var(--text-primary); font-size: 15px; outline: none;",
                                 }
                             }
-                            
+
                             div { style: "margin-bottom: 15px;",
                                 label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Title:" }
                                 input {
@@ -939,7 +937,7 @@ fn app() -> Element {
                                     style: "width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: var(--text-primary); font-size: 15px; outline: none;",
                                 }
                             }
-                            
+
                             div { style: "display: flex; gap: 15px; margin-bottom: 20px;",
                                 div { style: "flex: 1;",
                                     label { style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500;", "Start (ms):" }
@@ -968,7 +966,7 @@ fn app() -> Element {
                                     }
                                 }
                             }
-                            
+
                             button {
                                 onclick: add_chapter,
                                 style: "padding: 12px 25px; background: linear-gradient(135deg, var(--accent-green), var(--accent-yellow)); color: #1a1a1a; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; transition: transform 0.2s;",
@@ -978,7 +976,7 @@ fn app() -> Element {
 
                         div {
                             style: "max-height: 400px; overflow-y: auto;",
-                            
+
                             if chapters().is_empty() {
                                 p { style: "color: var(--text-light); text-align: center; padding: 30px;", "No chapters yet. Add one above!" }
                             } else {
@@ -990,7 +988,7 @@ fn app() -> Element {
                                     rsx! { div {
                                         key: "{ch.element_id}",
                                         style: "border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; margin-bottom: 15px; border-radius: 15px; background: rgba(255, 255, 255, 0.03);",
-                                        
+
                                         div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;",
                                             div { style: "display: flex; align-items: center; gap: 12px;",
                                                 strong { style: "color: var(--text-primary); font-size: 16px; background: linear-gradient(90deg, var(--accent-pink), var(--accent-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;", "{ch.element_id}" }
@@ -1020,11 +1018,11 @@ fn app() -> Element {
                                                 }
                                             }
                                         }
-                                        
+
                                         div { style: "color: var(--text-muted); font-size: 14px; margin-bottom: 12px;",
                                             "Time: {format_time(ch.start_time)} - {format_time(ch.end_time)}"
                                         }
-                                        
+
                                         div { style: "margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.1);",
                                             label {
                                                 r#for: "art-{ch.element_id}",
@@ -1039,7 +1037,7 @@ fn app() -> Element {
                                                 style: "font-size: 14px; color: var(--text-muted);",
                                             }
                                         }
-                                        
+
                                         if let Some(art) = chapter_art().iter().find(|a| a.element_id == ch.element_id) {
                                             div { style: "margin-top: 12px;",
                                                 img {
@@ -1063,7 +1061,7 @@ fn app() -> Element {
                         }
                     }
                 }
-                
+
                 button {
                     onclick: save_tags,
                     style: "
@@ -1096,6 +1094,7 @@ fn app() -> Element {
                     p { style: "color: var(--text-secondary); font-size: 22px; margin-bottom: 10px; font-weight: 600;", "🎵 Load an MP3 file to get started" }
                     p { style: "color: var(--text-muted); font-size: 16px;", "Supports local files and public URLs" }
                 }
+            }
             }
         }
     }

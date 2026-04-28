@@ -26,7 +26,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rust-src, wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown
 
       - name: Install Dioxus CLI
         run: cargo install dioxus-cli --locked --force

@@ -41,7 +41,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: mp3-tag-editor/dist
+          path: mp3-tag-editor/target/dx/mp3-tag-editor/release/web/public
 
   deploy:
     environment:

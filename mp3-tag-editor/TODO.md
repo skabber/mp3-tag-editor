@@ -1,15 +1,20 @@
 # MP3 Tag Editor - Future Improvements
 
-## High Priority
+## Completed
 
-- [ ] **Dark Mode Toggle**
+- [x] **Dark Mode Toggle**
   - Add a theme switch to toggle between light and dark modes
   - Use CSS variables for theme colors
   - Store preference in localStorage
 
+- [x] **Chapter Reordering**
+  - Allow users to reorder chapters with up/down buttons
+  - Update chapter order in the list
+
+## High Priority
+
 - [ ] **Drag-and-Drop Chapter Reordering**
-  - Allow users to reorder chapters by dragging
-  - Update chapter timestamps accordingly
+  - Allow users to reorder chapters by dragging visually
   - Visual feedback during drag operations
 
 ## Medium Priority

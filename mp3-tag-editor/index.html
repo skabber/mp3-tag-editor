@@ -8,8 +8,41 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+      :root {
+        --bg-primary: #f0f0f0;
+        --bg-card: #ffffff;
+        --text-primary: #333333;
+        --text-secondary: #444444;
+        --text-muted: #666666;
+        --text-light: #999999;
+        --border-color: #dddddd;
+        --shadow: rgba(0, 0, 0, 0.1);
+        --accent-blue: #007bff;
+        --accent-green: #28a745;
+        --accent-purple: #6f42c1;
+      }
+      [data-theme="dark"] {
+        --bg-primary: #1a1a1a;
+        --bg-card: #2d2d2d;
+        --text-primary: #e0e0e0;
+        --text-secondary: #cccccc;
+        --text-muted: #aaaaaa;
+        --text-light: #888888;
+        --border-color: #444444;
+        --shadow: rgba(0, 0, 0, 0.3);
+        --accent-blue: #3d91ff;
+        --accent-green: #40c057;
+        --accent-purple: #9775ff;
+      }
       * {
         box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background 0.3s, color 0.3s;
       }
     </style>
   </head>
@@ -17,6 +50,11 @@
     <div id="main"></div>
     <script type="module">
       import init from "/assets/dioxus.js";
+      // Initialize with saved theme preference
+      const saved = localStorage.getItem('mp3-editor-dark-mode');
+      if (saved === 'true') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
       init();
     </script>
   </body>

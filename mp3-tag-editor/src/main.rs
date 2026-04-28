@@ -87,6 +87,41 @@ fn app() -> Element {
     let mut url_input = use_signal(|| String::new());
     let mut error_message = use_signal(|| None::<String>);
     let mut is_loading = use_signal(|| false);
+    let mut is_dark_mode = use_signal(|| false);
+
+    let mut move_chapter = move |from: usize, to: usize| {
+        let mut chaps = chapters();
+        if from < chaps.len() && to < chaps.len() && from != to {
+            let item = chaps.remove(from);
+            chaps.insert(to, item);
+            chapters.set(chaps);
+        }
+    };
+
+    let toggle_dark_mode = move |_| {
+        is_dark_mode.set(!is_dark_mode());
+        // Save to localStorage via JS
+        let is_dark = is_dark_mode();
+        let _ = document::eval(&format!(
+            "localStorage.setItem('mp3-editor-dark-mode', '{}'); document.documentElement.setAttribute('data-theme', '{}');",
+            is_dark.to_string(),
+            if is_dark { "dark" } else { "light" }
+        ));
+    };
+
+    // Initialize dark mode on mount
+    {
+        spawn(async move {
+            let _ = document::eval(&format!(
+                "
+                const saved = localStorage.getItem('mp3-editor-dark-mode');
+                if (saved === 'true') {{
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }}
+                "
+            ));
+        });
+    }
 
     let load_from_file = move |event: FormEvent| {
         spawn(async move {
@@ -429,14 +464,21 @@ fn app() -> Element {
 
     rsx! {
         div {
-            style: "font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f0f0f0; min-height: 100vh;",
+            style: "font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: var(--bg-primary); min-height: 100vh;",
 
-            h1 { style: "color: #333;", "MP3 ID3 Tag Editor" }
+            div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;",
+                h1 { style: "color: var(--text-primary); margin: 0;", "MP3 ID3 Tag Editor" }
+                button {
+                    onclick: toggle_dark_mode,
+                    style: "padding: 8px 16px; background: var(--accent-purple); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    if is_dark_mode() { "🌙 Dark" } else { "☀️ Light" }
+                }
+            }
 
             div {
-                style: "background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                style: "background: var(--bg-card); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px var(--shadow);",
 
-                h2 { style: "margin-top: 0; color: #444;", "Load MP3 File" }
+                h2 { style: "margin-top: 0; color: var(--text-secondary);", "Load MP3 File" }
 
                 div {
                     style: "margin-bottom: 15px;",
@@ -459,12 +501,12 @@ fn app() -> Element {
                         placeholder: "Enter MP3 URL (e.g., https://example.com/audio.mp3)",
                         value: "{url_input}",
                         oninput: move |e| url_input.set(e.value()),
-                        style: "flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;",
+                        style: "flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px;",
                     }
                     button {
                         onclick: load_from_url,
                         disabled: "{is_loading}",
-                        style: "padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                        style: "padding: 10px 20px; background: var(--accent-blue); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
                         if is_loading() { 
                             div { style: "display: flex; align-items: center; gap: 5px;",
                                 span { style: "width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;", "" }
@@ -476,11 +518,11 @@ fn app() -> Element {
 
                 if let Some(err) = error_message() {
                     div {
-                        style: "color: #dc3545; margin-top: 10px; padding: 10px; background: #f8d7da; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;",
+                        style: "color: var(--accent-blue); margin-top: 10px; padding: 10px; background: #f8d7da; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;",
                         "{err}"
                         button {
                             onclick: move |_| error_message.set(None),
-                            style: "background: none; border: none; color: #dc3545; cursor: pointer; font-size: 20px; line-height: 1;",
+                            style: "background: none; border: none; color: var(--accent-blue); cursor: pointer; font-size: 20px; line-height: 1;",
                             "×"
                         }
                     }
@@ -489,8 +531,8 @@ fn app() -> Element {
 
             if let Some(ref mp3) = mp3_file() {
                 div {
-                    style: "background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                    h2 { style: "margin-top: 0; color: #444; border-bottom: 2px solid #6f42c1; padding-bottom: 10px;", "Preview" }
+                    style: "background: var(--bg-card); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px var(--shadow);",
+                    h2 { style: "margin-top: 0; color: var(--text-secondary); border-bottom: 2px solid #6f42c1; padding-bottom: 10px;", "Preview" }
                     audio {
                         controls: true,
                         style: "width: 100%;",
@@ -504,106 +546,106 @@ fn app() -> Element {
                     style: "display: grid; grid-template-columns: 1fr 1fr; gap: 20px;",
 
                     div {
-                        style: "background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                        style: "background: var(--bg-card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px var(--shadow);",
 
-                        h2 { style: "margin-top: 0; color: #444; border-bottom: 2px solid #007bff; padding-bottom: 10px;", "Basic Tags" }
+                        h2 { style: "margin-top: 0; color: var(--text-secondary); border-bottom: 2px solid var(--accent-blue); padding-bottom: 10px;", "Basic Tags" }
 
                         div { style: "margin-bottom: 12px;",
-                            label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Title:" }
+                            label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Title:" }
                             input {
                                 r#type: "text",
                                 value: "{editing_tag().title}",
                                 oninput: move |e| editing_tag.set(NewTag { title: e.value(), ..editing_tag() }),
-                                style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                             }
                         }
 
                         div { style: "margin-bottom: 12px;",
-                            label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Artist:" }
+                            label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Artist:" }
                             input {
                                 r#type: "text",
                                 value: "{editing_tag().artist}",
                                 oninput: move |e| editing_tag.set(NewTag { artist: e.value(), ..editing_tag() }),
-                                style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                             }
                         }
 
                         div { style: "margin-bottom: 12px;",
-                            label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Album:" }
+                            label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Album:" }
                             input {
                                 r#type: "text",
                                 value: "{editing_tag().album}",
                                 oninput: move |e| editing_tag.set(NewTag { album: e.value(), ..editing_tag() }),
-                                style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                             }
                         }
 
                         div { style: "margin-bottom: 12px; display: flex; gap: 15px;",
                             div { style: "flex: 1;",
-                                label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Year:" }
+                                label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Year:" }
                                 input {
                                     r#type: "text",
                                     value: "{editing_tag().year}",
                                     oninput: move |e| editing_tag.set(NewTag { year: e.value(), ..editing_tag() }),
-                                    style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                    style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                                 }
                             }
                             div { style: "flex: 1;",
-                                label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Genre:" }
+                                label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Genre:" }
                                 input {
                                     r#type: "text",
                                     value: "{editing_tag().genre}",
                                     oninput: move |e| editing_tag.set(NewTag { genre: e.value(), ..editing_tag() }),
-                                    style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                    style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                                 }
                             }
                         }
 
                         div { style: "margin-bottom: 12px; display: flex; gap: 15px;",
                             div { style: "flex: 1;",
-                                label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Track:" }
+                                label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Track:" }
                                 input {
                                     r#type: "text",
                                     value: "{editing_tag().track}",
                                     oninput: move |e| editing_tag.set(NewTag { track: e.value(), ..editing_tag() }),
-                                    style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                    style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                                 }
                             }
                             div { style: "flex: 1;",
-                                label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Disc:" }
+                                label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Disc:" }
                                 input {
                                     r#type: "text",
                                     value: "{editing_tag().disc}",
                                     oninput: move |e| editing_tag.set(NewTag { disc: e.value(), ..editing_tag() }),
-                                    style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                    style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                                 }
                             }
                         }
 
                         div { style: "margin-bottom: 12px;",
-                            label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Composer:" }
+                            label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Composer:" }
                             input {
                                 r#type: "text",
                                 value: "{editing_tag().composer}",
                                 oninput: move |e| editing_tag.set(NewTag { composer: e.value(), ..editing_tag() }),
-                                style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                             }
                         }
 
                         div { style: "margin-bottom: 12px;",
-                            label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Comment:" }
+                            label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Comment:" }
                             textarea {
                                 value: "{editing_tag().comment}",
                                 oninput: move |e| editing_tag.set(NewTag { comment: e.value(), ..editing_tag() }),
-                                style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; height: 80px; resize: vertical;",
+                                style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; height: 80px; resize: vertical;",
                             }
                         }
                     }
 
                     div {
-                        style: "background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                        style: "background: var(--bg-card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px var(--shadow);",
 
-                        h2 { style: "margin-top: 0; color: #444; border-bottom: 2px solid #28a745; padding-bottom: 10px;", "Chapter Markers" }
+                        h2 { style: "margin-top: 0; color: var(--text-secondary); border-bottom: 2px solid var(--accent-green); padding-bottom: 10px;", "Chapter Markers" }
 
                         div {
                             style: "margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px; border: 1px solid #e0e0e0;",
@@ -611,7 +653,7 @@ fn app() -> Element {
                             h3 { style: "margin-top: 0; color: #555;", "Add New Chapter" }
 
                             div { style: "margin-bottom: 10px;",
-                                label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Element ID:" }
+                                label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Element ID:" }
                                 input {
                                     r#type: "text",
                                     placeholder: "chap1",
@@ -620,12 +662,12 @@ fn app() -> Element {
                                         let current = editing_chapter().unwrap_or(NewChapter::default());
                                         editing_chapter.set(Some(NewChapter { element_id: e.value(), ..current }));
                                     },
-                                    style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                    style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                                 }
                             }
 
                             div { style: "margin-bottom: 10px;",
-                                label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Title:" }
+                                label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Title:" }
                                 input {
                                     r#type: "text",
                                     placeholder: "Chapter title",
@@ -634,13 +676,13 @@ fn app() -> Element {
                                         let current = editing_chapter().unwrap_or(NewChapter::default());
                                         editing_chapter.set(Some(NewChapter { title: e.value(), ..current }));
                                     },
-                                    style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                    style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                                 }
                             }
 
                             div { style: "margin-bottom: 10px; display: flex; gap: 15px;",
                                 div { style: "flex: 1;",
-                                    label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "Start (ms):" }
+                                    label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "Start (ms):" }
                                     input {
                                         r#type: "text",
                                         placeholder: "0",
@@ -649,11 +691,11 @@ fn app() -> Element {
                                             let current = editing_chapter().unwrap_or(NewChapter::default());
                                             editing_chapter.set(Some(NewChapter { start_time: e.value(), ..current }));
                                         },
-                                        style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                        style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                                     }
                                 }
                                 div { style: "flex: 1;",
-                                    label { style: "display: block; margin-bottom: 4px; color: #666; font-weight: bold;", "End (ms):" }
+                                    label { style: "display: block; margin-bottom: 4px; color: var(--text-muted); font-weight: bold;", "End (ms):" }
                                     input {
                                         r#type: "text",
                                         placeholder: "60000",
@@ -662,14 +704,14 @@ fn app() -> Element {
                                             let current = editing_chapter().unwrap_or(NewChapter::default());
                                             editing_chapter.set(Some(NewChapter { end_time: e.value(), ..current }));
                                         },
-                                        style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;",
+                                        style: "width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;",
                                     }
                                 }
                             }
 
                             button {
                                 onclick: add_chapter,
-                                style: "padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;",
+                                style: "padding: 10px 20px; background: var(--accent-green); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;",
                                 "Add Chapter"
                             }
                         }
@@ -678,26 +720,44 @@ fn app() -> Element {
                             style: "max-height: 400px; overflow-y: auto;",
 
                             if chapters().is_empty() {
-                                p { style: "color: #999; text-align: center; padding: 20px;", "No chapters yet. Add one above!" }
+                                p { style: "color: var(--text-light); text-align: center; padding: 20px;", "No chapters yet. Add one above!" }
                             } else {
-                                for ch in chapters() {{
+                                for (idx, ch) in chapters().iter().enumerate() {{
                                     let eid_remove = ch.element_id.clone();
                                     let eid_art = ch.element_id.clone();
+                                    let idx_up = idx;
+                                    let idx_down = idx;
                                     rsx! { div {
                                         key: "{ch.element_id}",
-                                        style: "border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 4px; background: white;",
+                                        style: "border: 1px solid var(--border-color); padding: 15px; margin-bottom: 15px; border-radius: 4px; background: var(--bg-card);",
 
                                         div { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;",
                                             div { style: "display: flex; align-items: center; gap: 10px;",
-                                                strong { style: "color: #333; font-size: 16px;", "{ch.element_id}" }
+                                                strong { style: "color: var(--text-primary); font-size: 16px;", "{ch.element_id}" }
                                                 if !ch.title.is_empty() {
-                                                    span { style: "color: #666;", "- {ch.title}" }
+                                                    span { style: "color: var(--text-muted);", "- {ch.title}" }
                                                 }
                                             }
-                                            button {
-                                                onclick: move |_| remove_chapter(eid_remove.clone()),
-                                                style: "background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 16px; line-height: 1;",
-                                                "×"
+                                            div { style: "display: flex; gap: 5px;",
+                                                if idx > 0 {
+                                                    button {
+                                                        onclick: move |_| move_chapter(idx_up, idx_up - 1),
+                                                        style: "background: var(--accent-purple); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;",
+                                                        "↑"
+                                                    }
+                                                }
+                                                if idx < chapters().len() - 1 {
+                                                    button {
+                                                        onclick: move |_| move_chapter(idx_down, idx_down + 1),
+                                                        style: "background: var(--accent-purple); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;",
+                                                        "↓"
+                                                    }
+                                                }
+                                                button {
+                                                    onclick: move |_| remove_chapter(eid_remove.clone()),
+                                                    style: "background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 16px; line-height: 1;",
+                                                    "×"
+                                                }
                                             }
                                         }
 
@@ -708,7 +768,7 @@ fn app() -> Element {
                                         div { style: "margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd;",
                                             label {
                                                 r#for: "art-{ch.element_id}",
-                                                style: "display: block; margin-bottom: 8px; color: #666; font-weight: bold;",
+                                                style: "display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: bold;",
                                                 "Chapter Art:"
                                             }
                                             input {
@@ -725,7 +785,7 @@ fn app() -> Element {
                                                 img {
                                                     src: "data:{art.mime_type};base64,{art.data_base64}",
                                                     alt: "Chapter art",
-                                                    style: "max-width: 120px; max-height: 120px; border-radius: 4px; border: 1px solid #ddd;",
+                                                    style: "max-width: 120px; max-height: 120px; border-radius: 4px; border: 1px solid var(--border-color);",
                                                 }
                                             }
                                         } else if let Some(ref art_base64) = ch.picture_data_base64 {
@@ -734,7 +794,7 @@ fn app() -> Element {
                                                 img {
                                                     src: "data:image/jpeg;base64,{art_base64}",
                                                     alt: "Chapter art",
-                                                    style: "max-width: 120px; max-height: 120px; border-radius: 4px; border: 1px solid #ddd;",
+                                                    style: "max-width: 120px; max-height: 120px; border-radius: 4px; border: 1px solid var(--border-color);",
                                                 }
                                             }
                                         }
@@ -747,14 +807,14 @@ fn app() -> Element {
 
                 button {
                     onclick: save_tags,
-                    style: "margin-top: 20px; padding: 15px 30px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,123,255,0.3);",
+                    style: "margin-top: 20px; padding: 15px 30px; background: var(--accent-blue); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,123,255,0.3);",
                     "Save Tags"
                 }
             } else {
                 div {
-                    style: "background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;",
-                    p { style: "color: #666; font-size: 18px;", "Load an MP3 file to get started" }
-                    p { style: "color: #999; font-size: 14px;", "Supports local files and public URLs" }
+                    style: "background: var(--bg-card); padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px var(--shadow); text-align: center;",
+                    p { style: "color: var(--text-muted); font-size: 18px;", "Load an MP3 file to get started" }
+                    p { style: "color: var(--text-light); font-size: 14px;", "Supports local files and public URLs" }
                 }
             }
         }

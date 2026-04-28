@@ -123,6 +123,33 @@ fn app() -> Element {
         });
     }
 
+    // Load default ATP podcast URL on mount
+    {
+        let url_input = url_input.clone();
+        spawn(async move {
+            let atp_feed_url = "https://cdn.atp.fm/rss/public?n2p3u3vm";
+            match reqwest::get(atp_feed_url).await {
+                Ok(response) => {
+                    if let Ok(content) = response.text().await {
+                        // Simple XML parsing to find first enclosure URL
+                        if let Some(start) = content.find("url=\"") {
+                            let rest = &content[start + 5..];
+                            if let Some(end) = rest.find("\"") {
+                                let url = &rest[..end];
+                                if url.ends_with(".mp3") {
+                                    url_input.set(url.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to load ATP feed: {}", e).into());
+                }
+            }
+        });
+    }
+
     let load_from_file = move |event: FormEvent| {
         spawn(async move {
             let files = event.files();
@@ -506,7 +533,7 @@ fn app() -> Element {
                 }
 
                 div {
-                    style: "display: flex; gap: 10px; align-items: center;",
+                    style: "display: flex; gap: 10px; align-items: center; margin-top: 10px;",
                     input {
                         r#type: "text",
                         placeholder: "Enter MP3 URL (e.g., https://example.com/audio.mp3)",
@@ -525,6 +552,13 @@ fn app() -> Element {
                             }
                         } else { "Load from URL" }
                     }
+                }
+
+                button {
+                    onclick: load_from_url,
+                    disabled: "{is_loading || url_input().is_empty()}",
+                    style: "padding: 10px 20px; background: var(--accent-green); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 10px;",
+                    "Load Latest ATP Episode"
                 }
 
                 if let Some(err) = error_message() {

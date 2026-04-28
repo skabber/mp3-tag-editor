@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "grayboard": {
+      "command": "/home/jay/.local/bin/grayboard-plugin",
+      "args": [],
+      "env": {
+        "BUS_IDENTITY": "fe"
+      }
+    }
+  }
+}

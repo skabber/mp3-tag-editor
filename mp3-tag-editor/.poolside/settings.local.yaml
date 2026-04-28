@@ -1,0 +1,49 @@
+tools:
+    shell:
+        allow:
+            - cd *
+            - cargo check
+            - cargo build *
+            - tail *
+            - sleep 10
+            - git status
+            - git add *
+            - git commit *
+            - git log *
+            - git checkout *
+            - "true"
+            - git branch *
+            - git push *
+            - git remote *
+            - sed *
+            - cat *
+            - git diff *
+            - git reset
+            - git ls-files *
+            - grep *
+            - head *
+            - git status *
+            - ls *
+            - find *
+            - git rm *
+            - echo *
+            - git config *
+            - dx build *
+            - cargo install dioxus-cli *
+            - sleep 30
+            - gh run list *
+            - gh run view 25073607438 *
+            - sleep 60
+            - gh run view 25073747087 *
+            - cargo fmt
+            - sleep 120
+            - gh run view 25073889798 *
+            - curl *
+paths:
+    allow:
+        - path: /home/jay/Projects/scratch/mp3-tag-editor/src/**
+          write: true
+        - path: /home/jay/Projects/scratch/mp3-tag-editor/**
+          write: true
+        - path: /home/jay/Projects/scratch/.github/workflows/**
+          write: true

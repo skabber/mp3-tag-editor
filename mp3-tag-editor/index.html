@@ -30,8 +30,13 @@
         to { opacity: 1; transform: translateY(0); }
       }
       
+      @keyframes glow {
+        0%, 100% { box-shadow: 0 0 5px var(--accent-cyan), 0 0 10px var(--accent-cyan), 0 0 15px var(--accent-cyan), 0 0 20px var(--accent-purple); }
+        50% { box-shadow: 0 0 10px var(--accent-pink), 0 0 20px var(--accent-pink), 0 0 30px var(--accent-pink), 0 0 40px var(--accent-purple); }
+      }
+      
       :root {
-        /* Light theme - neon accent colors */
+        /* Dark theme with neon accent colors */
         --bg-primary: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
         --bg-card: rgba(255, 255, 255, 0.08);
         --text-primary: #ffffff;
@@ -96,6 +101,30 @@
         animation: float 20s ease-in-out infinite;
       }
       
+      /* Custom cursor effect */
+      body {
+        cursor: none;
+      }
+      
+      .cursor {
+        position: fixed;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--accent-cyan);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        transform: translate(-50%, -50%);
+        transition: width 0.2s, height 0.2s, border-color 0.2s;
+      }
+      
+      .cursor.hover {
+        width: 40px;
+        height: 40px;
+        border-color: var(--accent-pink);
+        background: rgba(255, 0, 255, 0.1);
+      }
+      
       .neon-glow {
         box-shadow: 
           0 0 5px var(--accent-cyan),
@@ -115,6 +144,28 @@
       if (saved === 'true') {
         document.documentElement.setAttribute('data-theme', 'dark');
       }
+      
+      // Custom cursor
+      const cursor = document.createElement('div');
+      cursor.className = 'cursor';
+      document.body.appendChild(cursor);
+      
+      document.addEventListener('mousemove', (e) => {
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+      });
+      
+      document.addEventListener('mouseenter', () => cursor.classList.add('hover'), true);
+      document.addEventListener('mouseleave', () => cursor.classList.remove('hover'), true);
+      
+      // Add hover effect to interactive elements
+      setTimeout(() => {
+        const interactiveElements = document.querySelectorAll('button, input, label');
+        interactiveElements.forEach(el => {
+          el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+          el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+        });
+      }, 1000);
       
       init();
     </script>

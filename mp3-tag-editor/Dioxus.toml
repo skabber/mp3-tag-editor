@@ -4,3 +4,4 @@ default_platform = "web"
 
 [web.app]
 title = "MP3 Tag Editor"
+base_path = "/mp3-tag-editor/"

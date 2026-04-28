@@ -49,39 +49,6 @@ jobs:
           cd mp3-tag-editor
           cargo fmt --check
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo target
-        uses: actions/cache@v4
-        with:
-          path: mp3-tag-editor/target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      
-      - run: |
-          cd mp3-tag-editor
-          cargo build --release --target wasm32-unknown-unknown
-
   test:
     runs-on: ubuntu-latest
     steps:

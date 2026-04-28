@@ -5,14 +5,14 @@ use id3::{Tag, TagLike, Version};
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Mp3File {
     pub path: String,
     pub is_url: bool,
     pub data: Vec<u8>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TagInfo {
     pub title: String,
     pub artist: String,
@@ -26,7 +26,7 @@ pub struct TagInfo {
     pub pictures: Vec<PictureInfo>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PictureInfo {
     pub picture_type: String,
     pub mime_type: String,
@@ -34,7 +34,7 @@ pub struct PictureInfo {
     pub data_base64: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ChapterInfo {
     pub element_id: String,
     pub title: String,
@@ -45,7 +45,7 @@ pub struct ChapterInfo {
     pub picture_data_base64: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ChapterArt {
     pub element_id: String,
     pub mime_type: String,
@@ -53,7 +53,7 @@ pub struct ChapterArt {
     pub data_base64: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NewTag {
     pub title: String,
     pub artist: String,
@@ -66,7 +66,7 @@ pub struct NewTag {
     pub comment: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NewChapter {
     pub element_id: String,
     pub title: String,
@@ -258,18 +258,70 @@ fn app() -> Element {
             }
 
             if let Some(mp3) = file {
-                let file_path = if mp3.is_url {
-                    "downloaded.mp3".to_string()
-                } else {
-                    mp3.path.clone()
-                };
-
-                match tag.write_to_path(&file_path, Version::Id3v24) {
+                let mut output = Vec::new();
+                
+                match tag.write_to(&mut output, Version::Id3v24) {
                     Ok(_) => {
-                        let _ = document::eval(&format!(
-                            "alert('Tags saved successfully to {}')",
-                            file_path
-                        ));
+                        // Skip ID3v2 tag in original file and copy audio data
+                        let id3_len = if mp3.data.len() > 10 {
+                            let header = &mp3.data[0..10];
+                            if header.starts_with(b"ID3") {
+                                // ID3v2 header: 10 bytes + syncsafe encoded size
+                                let size = ((header[6] as usize) << 21)
+                                    | ((header[7] as usize) << 14)
+                                    | ((header[8] as usize) << 7)
+                                    | (header[9] as usize);
+                                10 + size
+                            } else {
+                                0
+                            }
+                        } else {
+                            0
+                        };
+                        
+                        output.extend_from_slice(&mp3.data[id3_len..]);
+                        
+                        let base64_data = BASE64.encode(&output);
+                        let filename = if mp3.is_url {
+                            "edited.mp3"
+                        } else {
+                            // Try to preserve original filename
+                            if let Some(dot_pos) = mp3.path.rfind('.') {
+                                let name = &mp3.path[..dot_pos];
+                                if let Some(path_sep) = name.rfind('/') {
+                                    &name[path_sep + 1..]
+                                } else {
+                                    name
+                                }
+                            } else {
+                                "edited.mp3"
+                            }
+                        };
+                        
+                        let js_code = format!(
+                            r#"
+                            (function() {{
+                                const data = atob("{}");
+                                const bytes = new Uint8Array(data.length);
+                                for (let i = 0; i < data.length; i++) {{
+                                    bytes[i] = data.charCodeAt(i);
+                                }}
+                                const blob = new Blob([bytes], {{ type: 'audio/mpeg' }});
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = "{}";
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                alert("Tags saved successfully! File downloaded as: {}");
+                            }})();
+                            "#,
+                            base64_data, filename, filename
+                        );
+                        
+                        let _ = document::eval(&js_code);
                     }
                     Err(e) => {
                         error_message.set(Some(format!("Failed to save: {}", e)));
@@ -286,11 +338,39 @@ fn app() -> Element {
                 error_message.set(Some("Chapter element ID is required".to_string()));
                 return;
             }
+            
+            // Check for duplicate element_id
+            if chapters().iter().any(|c| c.element_id == ch.element_id) {
+                error_message.set(Some(format!("Chapter with ID '{}' already exists", ch.element_id)));
+                return;
+            }
+            
+            let start_time: u32 = match ch.start_time.parse() {
+                Ok(v) => v,
+                Err(_) => {
+                    error_message.set(Some("Invalid start time: must be a number".to_string()));
+                    return;
+                }
+            };
+            
+            let end_time: u32 = match ch.end_time.parse() {
+                Ok(v) => v,
+                Err(_) => {
+                    error_message.set(Some("Invalid end time: must be a number".to_string()));
+                    return;
+                }
+            };
+            
+            if end_time <= start_time {
+                error_message.set(Some("End time must be greater than start time".to_string()));
+                return;
+            }
+            
             let chapter = ChapterInfo {
                 element_id: ch.element_id.clone(),
                 title: ch.title.clone(),
-                start_time: ch.start_time.parse().unwrap_or(0),
-                end_time: ch.end_time.parse().unwrap_or(0),
+                start_time,
+                end_time,
                 start_offset: 0xFFFFFFFF,
                 end_offset: 0xFFFFFFFF,
                 picture_data_base64: None,
@@ -316,6 +396,19 @@ fn app() -> Element {
                 Err(_) => return,
             };
             let data_base64 = BASE64.encode(&file_data);
+            
+            // Detect MIME type from file name
+            let mime_type = files[0]
+                .name()
+                .rsplit_once('.')
+                .map(|(_, ext)| ext.to_lowercase())
+                .and_then(|ext| match ext.as_str() {
+                    "png" => Some("image/png"),
+                    "gif" => Some("image/gif"),
+                    "webp" => Some("image/webp"),
+                    _ => Some("image/jpeg"),
+                })
+                .unwrap_or("image/jpeg");
 
             chapter_art.set(
                 chapter_art()
@@ -326,7 +419,7 @@ fn app() -> Element {
 
             let art = ChapterArt {
                 element_id,
-                mime_type: "image/jpeg".to_string(),
+                mime_type: mime_type.to_string(),
                 description: String::new(),
                 data_base64,
             };
@@ -372,14 +465,24 @@ fn app() -> Element {
                         onclick: load_from_url,
                         disabled: "{is_loading}",
                         style: "padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
-                        if is_loading() { "Loading..." } else { "Load from URL" }
+                        if is_loading() { 
+                            div { style: "display: flex; align-items: center; gap: 5px;",
+                                span { style: "width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;", "" }
+                                "Loading..."
+                            }
+                        } else { "Load from URL" }
                     }
                 }
 
                 if let Some(err) = error_message() {
                     div {
-                        style: "color: #dc3545; margin-top: 10px; padding: 10px; background: #f8d7da; border-radius: 4px;",
+                        style: "color: #dc3545; margin-top: 10px; padding: 10px; background: #f8d7da; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;",
                         "{err}"
+                        button {
+                            onclick: move |_| error_message.set(None),
+                            style: "background: none; border: none; color: #dc3545; cursor: pointer; font-size: 20px; line-height: 1;",
+                            "×"
+                        }
                     }
                 }
             }
@@ -617,18 +720,19 @@ fn app() -> Element {
                                             }
                                         }
 
-                                        if let Some(ref art_base64) = ch.picture_data_base64 {
+                                        if let Some(art) = chapter_art().iter().find(|a| a.element_id == ch.element_id) {
                                             div { style: "margin-top: 10px;",
                                                 img {
-                                                    src: "data:image/jpeg;base64,{art_base64}",
+                                                    src: "data:{art.mime_type};base64,{art.data_base64}",
                                                     alt: "Chapter art",
                                                     style: "max-width: 120px; max-height: 120px; border-radius: 4px; border: 1px solid #ddd;",
                                                 }
                                             }
-                                        } else if let Some(art) = chapter_art().iter().find(|a| a.element_id == ch.element_id) {
+                                        } else if let Some(ref art_base64) = ch.picture_data_base64 {
+                                            // Fallback: use generic image type when we don't have mime info
                                             div { style: "margin-top: 10px;",
                                                 img {
-                                                    src: "data:image/jpeg;base64,{art.data_base64}",
+                                                    src: "data:image/jpeg;base64,{art_base64}",
                                                     alt: "Chapter art",
                                                     style: "max-width: 120px; max-height: 120px; border-radius: 4px; border: 1px solid #ddd;",
                                                 }
@@ -653,33 +757,6 @@ fn app() -> Element {
                     p { style: "color: #999; font-size: 14px;", "Supports local files and public URLs" }
                 }
             }
-        }
-    }
-}
-
-impl Default for NewTag {
-    fn default() -> Self {
-        NewTag {
-            title: String::new(),
-            artist: String::new(),
-            album: String::new(),
-            year: String::new(),
-            genre: String::new(),
-            track: String::new(),
-            disc: String::new(),
-            composer: String::new(),
-            comment: String::new(),
-        }
-    }
-}
-
-impl Default for NewChapter {
-    fn default() -> Self {
-        NewChapter {
-            element_id: String::new(),
-            title: String::new(),
-            start_time: String::new(),
-            end_time: String::new(),
         }
     }
 }

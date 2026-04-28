@@ -116,12 +116,18 @@ npx serve .
 
 ```
 mp3-tag-editor/
-├── Cargo.toml       # Rust dependencies
-├── Dioxus.toml      # Dioxus configuration
-├── index.html       # Web entry point
-├── public/          # Static assets (if any)
+├── Cargo.toml                # Rust dependencies
+├── Cargo.lock                # Dependency lock file
+├── Dioxus.toml               # Dioxus configuration
+├── index.html                # Web entry point
+├── flake.nix                 # Nix development environment
+├── README.md                 # This file
+├── .gitignore                # Git ignore patterns
+├── .github/
+│   └── workflows/
+│       └── ci.yml           # GitHub Actions CI
 └── src/
-    └── main.rs      # Application source code
+    └── main.rs              # Application source code
 ```
 
 ## Dependencies
@@ -134,10 +140,11 @@ mp3-tag-editor/
 
 ## Notes
 
-- Chapter times are specified in **milliseconds**
+- Chapter times are specified in **milliseconds** (e.g., 1 minute = 60000 ms, 30 seconds = 30000 ms)
 - Chapter art is embedded directly within each chapter's frames (ID3v2 spec compliant)
 - For URL loading, the file must be accessible via a direct download link
-- Local file saving writes to the same path; URL files are saved as `downloaded.mp3`
+- When saving, the modified MP3 file is downloaded to your browser's default download location
+- The app preserves chapter art MIME types (PNG, GIF, WebP, JPEG)
 
 ## License
 

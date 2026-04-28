@@ -118,7 +118,7 @@ fn app() -> Element {
                 if (saved === 'true') {
                     document.documentElement.setAttribute('data-theme', 'dark');
                 }
-                "
+                ",
             );
         });
     }
@@ -172,38 +172,36 @@ fn app() -> Element {
             error_message.set(None);
 
             match reqwest::get(&url).await {
-                Ok(response) => {
-                    match response.bytes().await {
-                        Ok(bytes) => {
-                            let data: Vec<u8> = bytes.to_vec();
-                            let mp3 = Mp3File {
-                                path: url.clone(),
-                                is_url: true,
-                                data: data.clone(),
-                            };
-                            mp3_file.set(Some(mp3));
+                Ok(response) => match response.bytes().await {
+                    Ok(bytes) => {
+                        let data: Vec<u8> = bytes.to_vec();
+                        let mp3 = Mp3File {
+                            path: url.clone(),
+                            is_url: true,
+                            data: data.clone(),
+                        };
+                        mp3_file.set(Some(mp3));
 
-                            if let Ok((tag, chaps, art)) = parse_mp3_data(&data) {
-                                editing_tag.set(NewTag {
-                                    title: tag.title,
-                                    artist: tag.artist,
-                                    album: tag.album,
-                                    year: tag.year,
-                                    genre: tag.genre,
-                                    track: tag.track,
-                                    disc: tag.disc,
-                                    composer: tag.composer,
-                                    comment: tag.comment,
-                                });
-                                chapters.set(chaps);
-                                chapter_art.set(art);
-                            }
-                        }
-                        Err(e) => {
-                            error_message.set(Some(format!("Failed to read data: {}", e)));
+                        if let Ok((tag, chaps, art)) = parse_mp3_data(&data) {
+                            editing_tag.set(NewTag {
+                                title: tag.title,
+                                artist: tag.artist,
+                                album: tag.album,
+                                year: tag.year,
+                                genre: tag.genre,
+                                track: tag.track,
+                                disc: tag.disc,
+                                composer: tag.composer,
+                                comment: tag.comment,
+                            });
+                            chapters.set(chaps);
+                            chapter_art.set(art);
                         }
                     }
-                }
+                    Err(e) => {
+                        error_message.set(Some(format!("Failed to read data: {}", e)));
+                    }
+                },
                 Err(e) => {
                     error_message.set(Some(format!("Failed to fetch URL: {}", e)));
                 }
@@ -294,7 +292,7 @@ fn app() -> Element {
 
             if let Some(mp3) = file {
                 let mut output = Vec::new();
-                
+
                 match tag.write_to(&mut output, Version::Id3v24) {
                     Ok(_) => {
                         // Skip ID3v2 tag in original file and copy audio data
@@ -313,9 +311,9 @@ fn app() -> Element {
                         } else {
                             0
                         };
-                        
+
                         output.extend_from_slice(&mp3.data[id3_len..]);
-                        
+
                         let base64_data = BASE64.encode(&output);
                         let filename = if mp3.is_url {
                             "edited.mp3"
@@ -332,7 +330,7 @@ fn app() -> Element {
                                 "edited.mp3"
                             }
                         };
-                        
+
                         let js_code = format!(
                             r#"
                             (function() {{
@@ -355,7 +353,7 @@ fn app() -> Element {
                             "#,
                             base64_data, filename, filename
                         );
-                        
+
                         let _ = document::eval(&js_code);
                     }
                     Err(e) => {
@@ -373,13 +371,16 @@ fn app() -> Element {
                 error_message.set(Some("Chapter element ID is required".to_string()));
                 return;
             }
-            
+
             // Check for duplicate element_id
             if chapters().iter().any(|c| c.element_id == ch.element_id) {
-                error_message.set(Some(format!("Chapter with ID '{}' already exists", ch.element_id)));
+                error_message.set(Some(format!(
+                    "Chapter with ID '{}' already exists",
+                    ch.element_id
+                )));
                 return;
             }
-            
+
             let start_time: u32 = match ch.start_time.parse() {
                 Ok(v) => v,
                 Err(_) => {
@@ -387,7 +388,7 @@ fn app() -> Element {
                     return;
                 }
             };
-            
+
             let end_time: u32 = match ch.end_time.parse() {
                 Ok(v) => v,
                 Err(_) => {
@@ -395,12 +396,12 @@ fn app() -> Element {
                     return;
                 }
             };
-            
+
             if end_time <= start_time {
                 error_message.set(Some("End time must be greater than start time".to_string()));
                 return;
             }
-            
+
             let chapter = ChapterInfo {
                 element_id: ch.element_id.clone(),
                 title: ch.title.clone(),
@@ -416,8 +417,18 @@ fn app() -> Element {
     };
 
     let mut remove_chapter = move |element_id: String| {
-        chapters.set(chapters().into_iter().filter(|c| c.element_id != element_id).collect());
-        chapter_art.set(chapter_art().into_iter().filter(|a| a.element_id != element_id).collect());
+        chapters.set(
+            chapters()
+                .into_iter()
+                .filter(|c| c.element_id != element_id)
+                .collect(),
+        );
+        chapter_art.set(
+            chapter_art()
+                .into_iter()
+                .filter(|a| a.element_id != element_id)
+                .collect(),
+        );
     };
 
     let add_chapter_art = move |element_id: String, event: FormEvent| {
@@ -431,7 +442,7 @@ fn app() -> Element {
                 Err(_) => return,
             };
             let data_base64 = BASE64.encode(&file_data);
-            
+
             // Detect MIME type from file name
             let mime_type = files[0]
                 .name()
@@ -507,7 +518,7 @@ fn app() -> Element {
                         onclick: load_from_url,
                         disabled: "{is_loading}",
                         style: "padding: 10px 20px; background: var(--accent-blue); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
-                        if is_loading() { 
+                        if is_loading() {
                             div { style: "display: flex; align-items: center; gap: 5px;",
                                 span { style: "width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;", "" }
                                 "Loading..."
@@ -822,14 +833,18 @@ fn app() -> Element {
 }
 
 fn parse_mp3_data(data: &[u8]) -> Result<(TagInfo, Vec<ChapterInfo>, Vec<ChapterArt>), String> {
-    let tag = Tag::read_from2(Cursor::new(data)).map_err(|e| format!("Failed to read tag: {}", e))?;
+    let tag =
+        Tag::read_from2(Cursor::new(data)).map_err(|e| format!("Failed to read tag: {}", e))?;
 
     let mut tag_info = TagInfo {
         title: tag.title().unwrap_or_default().to_string(),
         artist: tag.artist().unwrap_or_default().to_string(),
         album: tag.album().unwrap_or_default().to_string(),
         year: tag.year().map(|y| y.to_string()).unwrap_or_default(),
-        genre: tag.genre_parsed().map(|g| g.to_string()).unwrap_or_default(),
+        genre: tag
+            .genre_parsed()
+            .map(|g| g.to_string())
+            .unwrap_or_default(),
         track: tag.track().map(|t| t.to_string()).unwrap_or_default(),
         disc: tag.disc().map(|d| d.to_string()).unwrap_or_default(),
         composer: String::new(),
@@ -902,5 +917,8 @@ fn format_time(ms: u32) -> String {
     let minutes = seconds / 60;
     let remaining_seconds = seconds % 60;
     let remaining_ms = ms % 1000;
-    format!("{:02}:{:02}.{:03}", minutes, remaining_seconds, remaining_ms)
+    format!(
+        "{:02}:{:02}.{:03}",
+        minutes, remaining_seconds, remaining_ms
+    )
 }

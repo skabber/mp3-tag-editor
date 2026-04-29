@@ -425,11 +425,62 @@ fn app() -> Element {
     };
 
     rsx! {
+        style { "
+            :root {{
+                /* Light theme */
+                --bg-primary: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                --bg-card: rgba(255, 255, 255, 0.8);
+                --text-primary: #1a1a2e;
+                --text-secondary: #2d3436;
+                --text-muted: #636e72;
+                --text-light: #b2bec3;
+                --border-color: rgba(0, 0, 0, 0.1);
+                --shadow: rgba(0, 0, 0, 0.1);
+                
+                /* Light accent colors */
+                --accent-pink: #e84393;
+                --accent-cyan: #0984e3;
+                --accent-purple: #6c5ce7;
+                --accent-blue: #74b9ff;
+                --accent-green: #00b894;
+                --accent-yellow: #fdcb6e;
+                --accent-orange: #fdcb6e;
+                
+                /* Glass effect */
+                --glass-bg: rgba(255, 255, 255, 0.7);
+                --glass-border: rgba(0, 0, 0, 0.1);
+            }}
+            
+            [data-theme='dark'] {{
+                --bg-primary: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+                --bg-card: rgba(255, 255, 255, 0.08);
+                --text-primary: #ffffff;
+                --text-secondary: #e0e0ff;
+                --text-muted: #a0a0ff;
+                --text-light: #8080ff;
+                --border-color: rgba(138, 43, 226, 0.3);
+                --shadow: rgba(0, 0, 0, 0.3);
+                
+                /* Neon accent colors */
+                --accent-pink: #ff00ff;
+                --accent-cyan: #00ffff;
+                --accent-purple: #8a2be2;
+                --accent-blue: #00bfff;
+                --accent-green: #00ff7f;
+                --accent-yellow: #ffff00;
+                --accent-orange: #ff7f00;
+                
+                /* Glass effect */
+                --glass-bg: rgba(255, 255, 255, 0.05);
+                --glass-border: rgba(255, 255, 255, 0.1);
+            }}
+        "}
+        
         div {
             style: "
                 min-height: 100vh;
                 padding: 30px 20px;
-                background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+                background: var(--bg-primary);
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 position: relative;
                 overflow: hidden;
@@ -467,11 +518,11 @@ fn app() -> Element {
                         align-items: center;
                         margin-bottom: 30px;
                         padding: 20px 30px;
-                        background: rgba(255, 255, 255, 0.05);
+                        background: var(--glass-bg);
                         backdrop-filter: blur(20px);
                         border-radius: 20px;
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                        border: 1px solid var(--glass-border);
+                        box-shadow: 0 8px 32px var(--shadow);
                     ",
 
                     h1 {

@@ -426,6 +426,11 @@ fn app() -> Element {
 
     rsx! {
         style { "
+            /* Fix cursor visibility - override any cached cursor: none */
+            body {{
+                cursor: auto !important;
+            }}
+            
             :root {{
                 /* Light theme */
                 --bg-primary: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);

@@ -31,9 +31,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: mp3-tag-editor/target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-target-
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -70,9 +70,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: mp3-tag-editor/target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-target-
 
       - uses: dtolnay/rust-toolchain@stable
       

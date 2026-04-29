@@ -196,37 +196,47 @@ fn app() -> Element {
             is_loading.set(true);
             error_message.set(None);
 
-            match reqwest::get(&url).await {
-                Ok(response) => match response.bytes().await {
-                    Ok(bytes) => {
-                        let data: Vec<u8> = bytes.to_vec();
-                        let mp3 = Mp3File {
-                            path: url.clone(),
-                            is_url: true,
-                            data: data.clone(),
-                        };
-                        mp3_file.set(Some(mp3));
+            // Use CORS proxy for URLs that likely have CORS restrictions
+            // This helps with podcast hosts like ATP that don't send CORS headers
+            let fetch_url = if url.contains("atp.fm") || url.contains("atp-cast") || url.contains("simplecast") {
+                format!("https://corsproxy.io/?{}", url)
+            } else {
+                url.clone()
+            };
 
-                        if let Ok((tag, chaps, art)) = parse_mp3_data(&data) {
-                            editing_tag.set(NewTag {
-                                title: tag.title,
-                                artist: tag.artist,
-                                album: tag.album,
-                                year: tag.year,
-                                genre: tag.genre,
-                                track: tag.track,
-                                disc: tag.disc,
-                                composer: tag.composer,
-                                comment: tag.comment,
-                            });
-                            chapters.set(chaps);
-                            chapter_art.set(art);
+            match reqwest::get(&fetch_url).await {
+                Ok(response) => {
+                    match response.bytes().await {
+                        Ok(bytes) => {
+                            let data: Vec<u8> = bytes.to_vec();
+                            let mp3 = Mp3File {
+                                path: url.clone(),
+                                is_url: true,
+                                data: data.clone(),
+                            };
+                            mp3_file.set(Some(mp3));
+
+                            if let Ok((tag, chaps, art)) = parse_mp3_data(&data) {
+                                editing_tag.set(NewTag {
+                                    title: tag.title,
+                                    artist: tag.artist,
+                                    album: tag.album,
+                                    year: tag.year,
+                                    genre: tag.genre,
+                                    track: tag.track,
+                                    disc: tag.disc,
+                                    composer: tag.composer,
+                                    comment: tag.comment,
+                                });
+                                chapters.set(chaps);
+                                chapter_art.set(art);
+                            }
+                        }
+                        Err(e) => {
+                            error_message.set(Some(format!("Failed to read data: {}", e)));
                         }
                     }
-                    Err(e) => {
-                        error_message.set(Some(format!("Failed to read data: {}", e)));
-                    }
-                },
+                }
                 Err(e) => {
                     error_message.set(Some(format!("Failed to fetch URL: {}", e)));
                 }

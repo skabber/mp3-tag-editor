@@ -84,9 +84,7 @@ fn app() -> Element {
     let mut chapter_art = use_signal(Vec::<ChapterArt>::new);
     let mut editing_tag = use_signal(NewTag::default);
     let mut editing_chapter = use_signal(|| None::<NewChapter>);
-    let mut url_input = use_signal(String::new);
     let mut error_message = use_signal(|| None::<String>);
-    let mut is_loading = use_signal(|| false);
     let mut is_dark_mode = use_signal(|| false);
 
     let mut move_chapter = move |from: usize, to: usize| {
@@ -160,60 +158,6 @@ fn app() -> Element {
                 data,
             };
             mp3_file.set(Some(mp3));
-        });
-    };
-
-    let load_from_url = move |_| {
-        let url = url_input();
-        if url.is_empty() {
-            error_message.set(Some("Please enter a URL".to_string()));
-            return;
-        }
-
-        spawn(async move {
-            is_loading.set(true);
-            error_message.set(None);
-
-            // Note: URLs from podcast hosts like ATP.fm may not work due to CORS restrictions.
-            // Users should download the MP3 and use the file upload option instead.
-            match reqwest::get(&url).await {
-                Ok(response) => {
-                    match response.bytes().await {
-                        Ok(bytes) => {
-                            let data: Vec<u8> = bytes.to_vec();
-                            let mp3 = Mp3File {
-                                path: url.clone(),
-                                is_url: true,
-                                data: data.clone(),
-                            };
-                            mp3_file.set(Some(mp3));
-
-                            if let Ok((tag, chaps, art)) = parse_mp3_data(&data) {
-                                editing_tag.set(NewTag {
-                                    title: tag.title,
-                                    artist: tag.artist,
-                                    album: tag.album,
-                                    year: tag.year,
-                                    genre: tag.genre,
-                                    track: tag.track,
-                                    disc: tag.disc,
-                                    composer: tag.composer,
-                                    comment: tag.comment,
-                                });
-                                chapters.set(chaps);
-                                chapter_art.set(art);
-                            }
-                        }
-                        Err(e) => {
-                            error_message.set(Some(format!("Failed to read data: {}", e)));
-                        }
-                    }
-                }
-                Err(e) => {
-                    error_message.set(Some(format!("Failed to fetch URL: {}", e)));
-                }
-            }
-            is_loading.set(false);
         });
     };
 
@@ -617,73 +561,6 @@ fn app() -> Element {
                             onchange: load_from_file,
                             style: "display: none;",
                         }
-
-                        div {
-                            style: "
-                                flex: 2;
-                                min-width: 250px;
-                                display: flex;
-                                gap: 10px;
-                            ",
-
-                            input {
-                                r#type: "text",
-                                placeholder: "Enter MP3 URL...",
-                                value: "{url_input}",
-                                oninput: move |e| url_input.set(e.value()),
-                                style: "
-                                    flex: 1;
-                                    padding: 15px 20px;
-                                    background: rgba(255, 255, 255, 0.08);
-                                    border: 1px solid rgba(255, 255, 255, 0.15);
-                                    border-radius: 12px;
-                                    color: var(--text-primary);
-                                    font-size: 15px;
-                                    outline: none;
-                                    transition: border-color 0.3s;
-                                ",
-                            }
-
-                            button {
-                                onclick: load_from_url,
-                                disabled: is_loading,
-                                style: "
-                                    padding: 15px 25px;
-                                    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-                                    color: white;
-                                    border: none;
-                                    border-radius: 12px;
-                                    cursor: pointer;
-                                    font-weight: 600;
-                                    transition: transform 0.2s, box-shadow 0.2s;
-                                ",
-                                if is_loading() {
-                                    div { style: "display: flex; align-items: center; gap: 8px;",
-                                        span { style: "width: 18px; height: 18px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;", "" }
-                                        "Loading..."
-                                    }
-                                } else { "Load URL" }
-                            }
-                        }
-                    }
-
-                    button {
-                        onclick: load_from_url,
-                        disabled: is_loading() || url_input().is_empty(),
-                        style: "
-                            width: 100%;
-                            padding: 15px;
-                            background: linear-gradient(135deg, var(--accent-green), var(--accent-yellow));
-                            color: #1a1a1a;
-                            border: none;
-                            border-radius: 12px;
-                            cursor: pointer;
-                            font-size: 16px;
-                            font-weight: 700;
-                            margin-top: 10px;
-                            transition: transform 0.2s, box-shadow 0.2s;
-                        ",
-                        "🎵 Load Latest ATP Episode"
                     }
 
                     if let Some(err) = error_message() {
@@ -1074,7 +951,7 @@ fn app() -> Element {
                         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
                     ",
                     p { style: "color: var(--text-secondary); font-size: 22px; margin-bottom: 10px; font-weight: 600;", "🎵 Load an MP3 file to get started" }
-                    p { style: "color: var(--text-muted); font-size: 16px;", "Supports local files and public URLs" }
+                    p { style: "color: var(--text-muted); font-size: 16px;", "Supports local files" }
                 }
             }
             }

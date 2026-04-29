@@ -48,11 +48,13 @@ jobs:
       - name: Cache dioxus-cli
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/bin/dx
-          key: ${{ runner.os }}-dioxus-cli-v0.7
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-bin-dioxus-v0.7.6
+          restore-keys: |
+            ${{ runner.os }}-cargo-bin-dioxus-
 
       - name: Install Dioxus CLI
-        run: cargo install dioxus-cli --locked --force
+        run: cargo install dioxus-cli --locked
 
       - name: Build
         working-directory: mp3-tag-editor

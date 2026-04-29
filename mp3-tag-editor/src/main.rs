@@ -123,30 +123,8 @@ fn app() -> Element {
         });
     }
 
-    // Load default ATP podcast URL on mount
-    {
-        let mut url_input = url_input;
-        spawn(async move {
-            let atp_feed_url = "https://cdn.atp.fm/rss/public?n2p3u3vm";
-            match reqwest::get(atp_feed_url).await {
-                Ok(response) => {
-                    if let Ok(content) = response.text().await {
-                        // Simple XML parsing to find first enclosure URL
-                        if let Some(start) = content.find("url=\"") {
-                            let rest = &content[start + 5..];
-                            if let Some(end) = rest.find("\"") {
-                                let url = &rest[..end];
-                                if url.ends_with(".mp3") {
-                                    url_input.set(url.to_string());
-                                }
-                            }
-                        }
-                    }
-                }
-                Err(_e) => {}
-            }
-        });
-    }
+    // NOTE: ATP.fm RSS feed loading disabled due to CORS restrictions
+    // Users should enter their own MP3 URLs or upload files directly.
 
     let load_from_file = move |event: FormEvent| {
         spawn(async move {
@@ -196,15 +174,9 @@ fn app() -> Element {
             is_loading.set(true);
             error_message.set(None);
 
-            // Use CORS proxy for URLs that likely have CORS restrictions
-            // This helps with podcast hosts like ATP that don't send CORS headers
-            let fetch_url = if url.contains("atp.fm") || url.contains("atp-cast") || url.contains("simplecast") {
-                format!("https://corsproxy.io/?{}", url)
-            } else {
-                url.clone()
-            };
-
-            match reqwest::get(&fetch_url).await {
+            // Note: URLs from podcast hosts like ATP.fm may not work due to CORS restrictions.
+            // Users should download the MP3 and use the file upload option instead.
+            match reqwest::get(&url).await {
                 Ok(response) => {
                     match response.bytes().await {
                         Ok(bytes) => {

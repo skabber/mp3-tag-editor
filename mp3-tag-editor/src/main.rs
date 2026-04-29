@@ -474,12 +474,43 @@ fn app() -> Element {
                 --glass-bg: rgba(255, 255, 255, 0.05);
                 --glass-border: rgba(255, 255, 255, 0.1);
             }}
+            
+            /* Mobile responsive styles */
+            @media (max-width: 768px) {{
+                .container {{
+                    padding: 15px 10px;
+                }}
+                h1 {{
+                    font-size: 24px !important;
+                }}
+                .header {{
+                    flex-direction: column;
+                    gap: 15px;
+                    text-align: center;
+                }}
+                .card {{
+                    padding: 20px;
+                    margin-bottom: 15px;
+                }}
+                .btn {{
+                    width: 100%;
+                    padding: 12px;
+                    font-size: 14px;
+                }}
+                .btn-secondary {{
+                    width: 100%;
+                }}
+                input {{
+                    padding: 12px !important;
+                    font-size: 14px !important;
+                }}
+            }}
         "}
         
-        div {
+        div { class: "container",
             style: "
                 min-height: 100vh;
-                padding: 30px 20px;
+                padding: 20px 15px;
                 background: var(--bg-primary);
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 position: relative;
@@ -511,7 +542,7 @@ fn app() -> Element {
                 ",
 
                 // Header
-                div {
+                div { class: "header",
                     style: "
                         display: flex;
                         justify-content: space-between;
@@ -558,15 +589,15 @@ fn app() -> Element {
                 }
 
                 // Load Section
-                div {
+                div { class: "card",
                     style: "
-                        background: rgba(255, 255, 255, 0.05);
+                        background: var(--glass-bg);
                         backdrop-filter: blur(20px);
                         border-radius: 20px;
                         padding: 30px;
                         margin-bottom: 25px;
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                        border: 1px solid var(--glass-border);
+                        box-shadow: 0 8px 32px var(--shadow);
                         animation: slideIn 0.5s ease-out;
                     ",
 
@@ -588,7 +619,7 @@ fn app() -> Element {
                             flex-wrap: wrap;
                         ",
 
-                        label {
+                        label { class: "btn",
                             style: "
                                 flex: 1;
                                 min-width: 200px;
